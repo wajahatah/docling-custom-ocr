@@ -1,0 +1,12 @@
+[project]
+name = "docling-custom-ocr"
+version = "0.1.0"
+dependencies = [
+  "docling",
+  "requests",
+  "Pillow"
+]
+
+[project.entry-points."docling"]
+custom_ocr_api = "docling_custom_ocr.plugin"
+    
