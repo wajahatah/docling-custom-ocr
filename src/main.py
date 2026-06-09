@@ -12,6 +12,7 @@ Two API surfaces:
 """
 
 import asyncio
+import json
 import os
 import re
 import shutil
@@ -58,6 +59,18 @@ IMAGE_EXTENSIONS     = {".png", ".jpg", ".jpeg", ".tiff", ".tif"}
 PDF_EXTENSIONS       = {".pdf"}
 SUPPORTED_EXTENSIONS = PDF_EXTENSIONS | IMAGE_EXTENSIONS | {".docx", ".txt", ".pptx", ".xlsx", ".html", ".md"}
 SUPPORTED_STRATEGIES = {"hierarchical", "recursive"}
+
+CHUNKS_DIR = Path(__file__).parent.parent / "chunks"
+
+
+def _save_chunks(stem: str, chunks: list) -> Path:
+    """Write chunks to chunks/{stem}_chunks.json at the project root."""
+    CHUNKS_DIR.mkdir(exist_ok=True)
+    out = CHUNKS_DIR / f"{stem}_chunks.json"
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(chunks, f, indent=2, ensure_ascii=False)
+    print(f"[Chunks] Saved {len(chunks)} chunk(s) → {out}")
+    return out
 
 # ---------------------------------------------------------------------------
 # Extraction Function A — With OCR (PDF & Images)
@@ -366,6 +379,7 @@ async def process_document(
     if text_provided:
         print(f"[Router] Raw text input received ({len(text)} characters).")
         chunks = chunk_raw_text(text, strategy=chunking_strategy)
+        _save_chunks("raw_text", chunks)
         return {
             "status": "success",
             "source": "raw_text",
@@ -415,6 +429,8 @@ async def process_document(
         chunks = await loop.run_in_executor(
             None, chunk_document, result, chunking_strategy, 500, 50
         )
+
+        _save_chunks(Path(file.filename).stem, chunks)
 
         return {
             "status": "success",
@@ -551,6 +567,7 @@ async def predict(request: ChunkerPredictRequest) -> dict[str, Any]:
                 request.chunk_overlap,
             ),
         )
+        _save_chunks("predict_text", raw)
         return _to_response_dict(raw)
 
     source_url = request.file_url or request.read_url
@@ -575,6 +592,8 @@ async def predict(request: ChunkerPredictRequest) -> dict[str, Any]:
         # stops retrying after the configured budget).
         raise HTTPException(status_code=502, detail=f"chunker failed: {exc}") from exc
 
+    stem = Path(urlparse(source_url).path).stem or "predict_url"
+    _save_chunks(stem, raw)
     return _to_response_dict(raw)
 
 

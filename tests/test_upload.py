@@ -3,15 +3,15 @@ Quick file upload tester.
 
 Usage:
     conda activate raas2
-    python test_upload.py                          # runs all built-in demos
-    python test_upload.py path/to/file.pdf         # upload a specific file
-    python test_upload.py path/to/file.pdf surya   # use surya backend for this run
+    python tests/test_upload.py                          # runs all built-in demos
+    python tests/test_upload.py path/to/file.pdf         # upload a specific file
+    python tests/test_upload.py path/to/file.pdf surya   # use surya backend for this run
+
+Chunks are saved automatically by the server to chunks/{filename}_chunks.json.
 """
 
-import io
 import os
 import sys
-import json
 
 import requests
 
@@ -82,7 +82,7 @@ def test_raw_text_recursive():
 
 
 def test_upload_file(file_path: str, use_ocr: bool = True, strategy: str = "hierarchical"):
-    """Upload any file from disk."""
+    """Upload any file from disk. The server saves chunks to chunks/{stem}_chunks.json."""
     if not os.path.exists(file_path):
         print(f"\n[SKIP] File not found: {file_path}")
         return
